@@ -7,7 +7,7 @@ import socket
 import sys
 from time import sleep
 
-import editdistance
+#import editdistance
 from getkey import getkey
 
 from lib import font, stopwords, substwords
@@ -53,19 +53,19 @@ def suppress(word):
         else:
             mindist = 1
 
-        if editdistance.eval(word.lower(), stop) <= mindist:
-            #print 'suppress {} due to {}'.format(word, stop)
-            return True
+#        if editdistance.eval(word.lower(), stop) <= mindist:
+#            #print 'suppress {} due to {}'.format(word, stop)
+#            return True
 
     return False
 
 
 def subst(word):
     "Returns a substitution for the word if desired, or None if not"
-    for subst in substwords:
-        if editdistance.eval(word.lower(), subst[0]) <= 1:
-            #print '{} for {} due to {}'.format(subst[1], subst[0], word)
-            return subst[1]
+#    for subst in substwords:
+#        if editdistance.eval(word.lower(), subst[0]) <= 1:
+#            #print '{} for {} due to {}'.format(subst[1], subst[0], word)
+#            return subst[1]
 
     return word
 
