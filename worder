@@ -110,7 +110,10 @@ def permute(msg):
         outmsg += part
 
     # Substitute for KAOS:
-    outmsg = kaos(outmsg)
+    #outmsg = kaos(outmsg)
+
+    # upper case font is best
+    outmsg = outmsg.upper()
 
     return outmsg
 
