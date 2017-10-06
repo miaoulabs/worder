@@ -1,0 +1,166 @@
+#!/usr/bin/env python
+
+import os
+import random
+import re
+import socket
+import sys
+from time import sleep
+
+import editdistance
+from getkey import getkey
+
+from lib import font, stopwords, substwords
+
+
+random.seed()
+
+UDP_IP = "127.0.0.1"
+UDP_PORT = 1075
+PANEL_WIDTH = 5
+PANEL_HEIGHT = 5
+PANEL_PROTOCOL = 0
+
+MESSAGE_HEADER = (str(PANEL_PROTOCOL) + "\n" +
+                  str(PANEL_WIDTH) + "\n" +
+                  str(PANEL_HEIGHT) + "\n")
+
+BLANK_FRAME = ('0'*PANEL_WIDTH + '\n')*PANEL_HEIGHT
+FULL_FRAME = ('1'*PANEL_WIDTH + '\n')*PANEL_HEIGHT
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+unbuffered = os.fdopen(sys.stdout.fileno(), 'w', 0)
+
+
+def get_msg():
+    while True:
+        sock.sendto(MESSAGE_HEADER + BLANK_FRAME, (UDP_IP, UDP_PORT))
+
+        print('KAOS enters a message of up to 30 characters')
+        print('/----------------------------\\')
+        msg = raw_input()
+
+        if msg:
+            return msg[0:30]
+
+
+def suppress(word):
+    "Figure out if we should suppress this word"
+
+    for stop in stopwords:
+        if len(word) > 4:
+            mindist = 2
+        else:
+            mindist = 1
+
+        if editdistance.eval(word.lower(), stop) <= mindist:
+            #print 'suppress {} due to {}'.format(word, stop)
+            return True
+
+    return False
+
+
+def subst(word):
+    "Returns a substitution for the word if desired, or None if not"
+    for subst in substwords:
+        if editdistance.eval(word.lower(), subst[0]) <= 1:
+            #print '{} for {} due to {}'.format(subst[1], subst[0], word)
+            return subst[1]
+
+    return word
+
+
+def kaos(msg):
+    "Randomly add * (KAOS symbol) to messages"
+    kaosed = False
+
+    l = list(msg)
+    for i in xrange(len(l)):
+        if random.randint(0, 20) == 0:
+            l[i] = '*'
+            kaosed = True
+
+        if random.randint(0,3) == 0:
+            if l[i].isupper():
+                l[i] = l[i].lower()
+            else:
+                l[i] = l[i].upper()
+
+    if not kaosed:
+        l[random.randint(0, len(l)-1)] = '*'
+
+    return ''.join(l)
+
+
+def permute(msg):
+    "Permute the message"
+
+    outmsg = ''
+
+    parts = re.split('([\W_])', msg)
+    for part in parts:
+        # Substitute for mayhem:
+        part = subst(part)
+
+        # Remove political words
+        if suppress(part):
+            part = random.choice(('**', 'dust', 'sky', 'dude', 'chick'))
+
+        outmsg += part
+
+    # Substitute for KAOS:
+    outmsg = kaos(outmsg)
+
+    return outmsg
+
+
+def send_msg(msg):
+    for c in msg[0:40]:
+        unbuffered.write(c)
+        send_char(c)
+        sleep(0.5)
+    unbuffered.write('\n\n')
+
+
+def send_char(c):
+    if c in font:
+        pkt = MESSAGE_HEADER
+
+        for l in font[c]:
+            pkt += l + '\n'
+
+        sock.sendto(pkt, (UDP_IP, UDP_PORT))
+    else:
+        print 'ERROR: {}'.format(c)
+
+
+while True:
+    send_msg(permute(get_msg()))
+
+
+sys.exit(0)
+
+lastpos = None
+while True:
+    key = getkey()
+    pos = ord(key) - ord('a')
+
+    if pos < 0 or pos >= 26 or pos == lastpos:
+        print 'STOP'
+        body = BLANK_FRAME
+        lastpos = None
+    elif pos == 25:
+        body = FULL_FRAME
+    else:
+        print pos
+        body = ''
+        lastpos = pos
+
+        for r in xrange(5):
+            for c in xrange(5):
+                cur = r * 5 + c
+                body += '1' if cur == pos else '0'
+
+            body += '\n'
+
+    sock.sendto(MESSAGE_HEADER + body, (UDP_IP, UDP_PORT))
