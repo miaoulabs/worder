@@ -15,6 +15,7 @@ from lib import font, stopwords, substwords
 
 random.seed()
 
+DELAY = 2
 UDP_IP = "127.0.0.1"
 UDP_PORT = 1075
 PANEL_WIDTH = 5
@@ -118,7 +119,7 @@ def send_msg(msg):
     for c in msg[0:40]:
         unbuffered.write(c)
         send_char(c)
-        sleep(0.5)
+        sleep(DELAY)
     unbuffered.write('\n\n')
 
 
